@@ -99,6 +99,7 @@ def read_epub(path: Path) -> list[tuple[str, str]]:
 
 
 def safe_name(s: str) -> str:
+    s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r"[^\w\s-]", "", s).strip().replace(" ", "_")
     return s[:80] or "chapter"
 

@@ -24,6 +24,13 @@ class TestSafeName:
     def test_truncates_to_80_chars(self):
         assert len(safe_name("x" * 200)) == 80
 
+    def test_collapses_internal_newlines_and_tabs(self):
+        # EPUB headings can wrap across lines; the newline must be normalized
+        # out of filenames or Windows rejects the write.
+        assert safe_name("The King's Closet at the\nTuileries") == "The_Kings_Closet_at_the_Tuileries"
+        assert safe_name("foo\tbar") == "foo_bar"
+        assert safe_name("line one\r\nline two") == "line_one_line_two"
+
 
 class TestUnwrapHardWraps:
     def test_single_newline_becomes_space(self):
