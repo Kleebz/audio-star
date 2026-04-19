@@ -16,7 +16,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 import warnings
 from pathlib import Path
@@ -234,36 +233,39 @@ def main() -> int:
     total_wall = 0.0
     book_name = safe_name(path.stem)
 
-    with tempfile.TemporaryDirectory(prefix="audiostar_") as tmp:
-        tmp_dir = Path(tmp)
-        wav_paths: list[Path] = []
-        durations: list[float] = []
-        titles: list[str] = []
+    chapters_dir = out_dir / "_chapters"
+    chapters_dir.mkdir(parents=True, exist_ok=True)
 
-        for i, (name, text) in enumerate(chapters, 1):
-            print(f"[{i}/{len(chapters)}] {name}  ({len(text):,} chars)")
-            t0 = time.time()
-            audio = synthesize_chapter(pipe, text, args.voice, args.speed)
-            dt = time.time() - t0
-            dur = len(audio) / SAMPLE_RATE
-            total_audio += dur
-            total_wall += dt
-            wav_path = tmp_dir / f"{name}.wav"
-            sf.write(wav_path, audio, SAMPLE_RATE)
-            wav_paths.append(wav_path)
-            durations.append(dur)
-            titles.append(chapter_display_title(name))
-            print(f"    {dur/60:.1f} min audio in {dt:.1f}s  ({dur/dt if dt else 0:.1f}x realtime)")
+    wav_paths: list[Path] = []
+    durations: list[float] = []
+    titles: list[str] = []
 
-        print(f"\nencoding {args.format} output...")
-        if args.split:
-            for wav_path in wav_paths:
-                out_path = encode_chapter(wav_path, args.format, out_dir)
-                print(f"  -> {out_path.name}")
-        else:
-            out_path = out_dir / f"{book_name}.{args.format}"
-            concat_chapters(wav_paths, titles, durations, args.format, out_path, tmp_dir)
+    for i, (name, text) in enumerate(chapters, 1):
+        print(f"[{i}/{len(chapters)}] {name}  ({len(text):,} chars)")
+        t0 = time.time()
+        audio = synthesize_chapter(pipe, text, args.voice, args.speed)
+        dt = time.time() - t0
+        dur = len(audio) / SAMPLE_RATE
+        total_audio += dur
+        total_wall += dt
+        wav_path = chapters_dir / f"{name}.wav"
+        sf.write(wav_path, audio, SAMPLE_RATE)
+        wav_paths.append(wav_path)
+        durations.append(dur)
+        titles.append(chapter_display_title(name))
+        print(f"    {dur/60:.1f} min audio in {dt:.1f}s  ({dur/dt if dt else 0:.1f}x realtime)")
+
+    print(f"\nencoding {args.format} output...")
+    if args.split:
+        for wav_path in wav_paths:
+            out_path = encode_chapter(wav_path, args.format, out_dir)
             print(f"  -> {out_path.name}")
+    else:
+        out_path = out_dir / f"{book_name}.{args.format}"
+        concat_chapters(wav_paths, titles, durations, args.format, out_path, chapters_dir)
+        print(f"  -> {out_path.name}")
+
+    shutil.rmtree(chapters_dir)
 
     print(f"\ndone: {total_audio/60:.1f} min of audio in {total_wall/60:.1f} min wall  "
           f"({total_audio/total_wall if total_wall else 0:.1f}x realtime)")

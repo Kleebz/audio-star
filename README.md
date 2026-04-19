@@ -110,6 +110,7 @@ More voices (JP/ZH/ES/FR/HI/IT/PT) listed on the [Kokoro model card](https://hug
 - **EPUB**: chapter structure is read from the embedded HTML — sections shorter than 200 chars (cover pages, blank TOCs) are skipped.
 - **Chapter detection in `.txt`**: regex-based, matches lines starting with `Chapter`, `Part`, or `Book` followed by an arabic or Roman numeral. If none match, the whole file becomes a single chapter.
 - **PDFs are not supported.** Convert them to EPUB or TXT first with [Calibre](https://calibre-ebook.com/).
+- **`_chapters/` working folder:** while the script runs, each chapter is written as a WAV to `<out-dir>/_chapters/` so you can see progress. The folder is auto-deleted once the final output is produced. If the run crashes or is interrupted, your completed chapters stay there — useful for manual recovery or resuming with `ffmpeg`.
 
 ## CLI reference
 
