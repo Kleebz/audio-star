@@ -233,7 +233,7 @@ def main() -> int:
     total_wall = 0.0
     book_name = safe_name(path.stem)
 
-    chapters_dir = out_dir / "_chapters"
+    chapters_dir = out_dir / f"_chapters_{book_name}"
     chapters_dir.mkdir(parents=True, exist_ok=True)
 
     wav_paths: list[Path] = []
