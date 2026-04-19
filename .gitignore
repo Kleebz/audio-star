@@ -1,0 +1,35 @@
+# venv
+venv/
+.venv/
+env/
+
+# python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+
+# generated audio output
+out/
+out_*/
+*.wav
+*.mp3
+*.m4a
+*.m4b
+*.flac
+*.ogg
+
+# hugging face cache (if someone sets HF_HOME here)
+.cache/
+models--*/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
