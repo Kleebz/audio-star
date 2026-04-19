@@ -241,6 +241,16 @@ def main() -> int:
     titles: list[str] = []
 
     for i, (name, text) in enumerate(chapters, 1):
+        wav_path = chapters_dir / f"{name}.wav"
+        if wav_path.exists():
+            dur = sf.info(str(wav_path)).duration
+            total_audio += dur
+            wav_paths.append(wav_path)
+            durations.append(dur)
+            titles.append(chapter_display_title(name))
+            print(f"[{i}/{len(chapters)}] {name}  (cached, {dur/60:.1f} min)")
+            continue
+
         print(f"[{i}/{len(chapters)}] {name}  ({len(text):,} chars)")
         t0 = time.time()
         audio = synthesize_chapter(pipe, text, args.voice, args.speed)
@@ -248,7 +258,6 @@ def main() -> int:
         dur = len(audio) / SAMPLE_RATE
         total_audio += dur
         total_wall += dt
-        wav_path = chapters_dir / f"{name}.wav"
         sf.write(wav_path, audio, SAMPLE_RATE)
         wav_paths.append(wav_path)
         durations.append(dur)
