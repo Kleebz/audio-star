@@ -1,5 +1,7 @@
 # audio-star
 
+[![tests](https://github.com/Kleebz/audio-star/actions/workflows/tests.yml/badge.svg)](https://github.com/Kleebz/audio-star/actions/workflows/tests.yml)
+
 A thin CLI wrapper that turns `.txt` or `.epub` books into audiobooks using [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M) on your own GPU. Produces one audio file per chapter.
 
 **All the heavy lifting is done by [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), an open-weight TTS model by [hexgrad](https://huggingface.co/hexgrad). This repo is just the audiobook glue — chapter detection, text cleanup, batch rendering, output formats.** See [Credits](#credits) below.
