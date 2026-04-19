@@ -50,10 +50,10 @@ Then pass `--device cpu` when running (the script auto-falls-back if CUDA isn't 
 
 ```cmd
 venv\Scripts\activate
-python audiobook.py sample.txt
+python audiobook.py frankenstein_short.txt
 ```
 
-Outputs `out/01_Chapter_1.wav` etc.
+Outputs `out/01_Chapter_1.wav` etc. For a longer end-to-end test, use `frankenstein_full.txt` — the full novel, public domain, produces ~4 hours of audio.
 
 ## Usage examples
 

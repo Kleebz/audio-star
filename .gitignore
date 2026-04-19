@@ -25,7 +25,6 @@ out_*/
 
 # personal book files — put your test books in books/ to keep them out of git
 books/
-/84.txt
 
 # hugging face cache (if someone sets HF_HOME here)
 .cache/
