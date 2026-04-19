@@ -9,6 +9,12 @@ __pycache__/
 *.egg-info/
 *.egg
 
+# test / coverage artifacts
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+
 # generated audio output
 out/
 out_*/
