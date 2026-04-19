@@ -5,7 +5,8 @@ A thin CLI wrapper that turns `.txt` or `.epub` books into audiobooks using [Kok
 **All the heavy lifting is done by [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), an open-weight TTS model by [hexgrad](https://huggingface.co/hexgrad). This repo is just the audiobook glue — chapter detection, text cleanup, batch rendering, output formats.** See [Credits](#credits) below.
 
 - Runs locally — nothing leaves your machine.
-- Kokoro-82M is small (~330 MB) and fast. On a GTX 1080 Ti you get ~20× realtime: a 10-hour book renders in ~30 minutes.
+- Runs on CPU or GPU. GPU is typically 10–50× faster than CPU depending on hardware. On a mid-range GPU like a GTX 1080 Ti you get ~20× realtime (a 10-hour book renders in ~30 minutes); on a modern desktop CPU, expect 2–4× realtime.
+- Kokoro-82M is small (~330 MB).
 - No voice cloning — uses Kokoro's built-in voices (English, Japanese, Chinese, Spanish, French, Hindi, Italian, Portuguese).
 
 **Hear it:** [`samples/demo_bella.mp3`](samples/demo_bella.mp3) — a 6-second clip using the `af_bella` voice.
@@ -13,7 +14,7 @@ A thin CLI wrapper that turns `.txt` or `.epub` books into audiobooks using [Kok
 ## Requirements
 
 - Python 3.10+ (tested on 3.11)
-- An NVIDIA GPU for sensible speed. CPU works but is ~10× slower.
+- An NVIDIA GPU is recommended but not required. CPU works — see speed notes above.
 - `ffmpeg` on PATH if you want MP3 output. Get it from [ffmpeg.org](https://ffmpeg.org/download.html) or `winget install ffmpeg`.
 - `espeak-ng` is **not** required — it's bundled via the `espeakng-loader` pip package.
 
@@ -78,9 +79,6 @@ python audiobook.py poetry.txt --no-unwrap
 
 :: list available voices
 python audiobook.py --list-voices
-
-:: skip venv activation — use the batch wrapper
-kokoro-tts.bat mybook.txt --mp3
 ```
 
 ## Voices
