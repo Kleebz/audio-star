@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from audiobook import CHAPTER_RE, read_txt, safe_name, unwrap_hard_wraps
+from audiobook import CHAPTER_RE, read_epub, read_txt, safe_name, unwrap_hard_wraps
 
 
 class TestSafeName:
@@ -109,3 +109,110 @@ class TestReadTxt:
         chapters = read_txt(f, unwrap=False)
         body = chapters[0][1]
         assert "Line one\nLine two" in body
+
+    def test_intro_text_before_first_chapter_is_captured(self, tmp_path):
+        f = tmp_path / "book.txt"
+        intro = "This is introductory material that precedes any chapter heading and is long enough to exceed the 50-character threshold in read_txt."
+        f.write_text(
+            f"{intro}\n\nChapter 1\n\nFirst chapter body.",
+            encoding="utf-8",
+        )
+        chapters = read_txt(f, unwrap=False)
+        assert len(chapters) == 2
+        assert chapters[0][0] == "00_intro"
+        assert "introductory material" in chapters[0][1]
+
+
+def _build_epub(path, sections):
+    """Build a minimal EPUB with the given sections.
+
+    sections is a list of (filename, html_body_content) tuples. The body content
+    is wrapped in a bare html/body shell so the `<title>` tag precedence isn't
+    accidentally triggered by ebooklib-added metadata.
+    """
+    from ebooklib import epub as _epub
+
+    book = _epub.EpubBook()
+    book.set_identifier("id-test")
+    book.set_title("Test Book")
+    book.set_language("en")
+    book.add_author("Tester")
+
+    items = []
+    for fname, body in sections:
+        c = _epub.EpubHtml(title=fname, file_name=fname, lang="en")
+        c.content = f"<html><body>{body}</body></html>"
+        book.add_item(c)
+        items.append(c)
+
+    book.toc = items
+    book.add_item(_epub.EpubNcx())
+    book.add_item(_epub.EpubNav())
+    book.spine = ["nav"] + items
+
+    _epub.write_epub(str(path), book)
+
+
+class TestReadEpub:
+    LONG_BODY = "<p>" + ("Some real content here. " * 20) + "</p>"  # ~500 chars
+
+    def test_extracts_multiple_chapters(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("ch1.xhtml", f"<h1>Chapter One</h1>{self.LONG_BODY}"),
+            ("ch2.xhtml", f"<h1>Chapter Two</h1>{self.LONG_BODY}"),
+        ])
+        chapters = read_epub(epub_path)
+        assert len(chapters) == 2
+
+    def test_filters_tiny_sections(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("cover.xhtml", "<p>Cover</p>"),  # <200 chars → filtered
+            ("ch1.xhtml", f"<h1>Real Chapter</h1>{self.LONG_BODY}"),
+        ])
+        chapters = read_epub(epub_path)
+        assert len(chapters) == 1
+        assert "Real_Chapter" in chapters[0][0]
+
+    def test_uses_heading_as_title(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("ch1.xhtml", f"<h2>The Real Title</h2>{self.LONG_BODY}"),
+        ])
+        chapters = read_epub(epub_path)
+        assert "The_Real_Title" in chapters[0][0]
+
+    def test_fallback_title_when_no_heading(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("ch1.xhtml", self.LONG_BODY),  # no h1/h2/h3
+        ])
+        chapters = read_epub(epub_path)
+        assert "Section" in chapters[0][0]
+
+    def test_body_text_is_extracted(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("ch1.xhtml",
+             f"<h1>Chapter One</h1><p>The quick brown fox jumps over the lazy dog. {'x' * 300}</p>"),
+        ])
+        chapters = read_epub(epub_path)
+        assert len(chapters) == 1
+        _, body = chapters[0]
+        assert "quick brown fox" in body
+
+    def test_script_and_style_are_stripped(self, tmp_path):
+        epub_path = tmp_path / "test.epub"
+        _build_epub(epub_path, [
+            ("ch1.xhtml",
+             "<h1>Chapter One</h1>"
+             "<script>alert('evil');</script>"
+             "<style>body { color: red; }</style>"
+             f"<p>The actual chapter text. {'x' * 300}</p>"),
+        ])
+        chapters = read_epub(epub_path)
+        _, body = chapters[0]
+        assert "actual chapter text" in body
+        assert "alert" not in body
+        assert "color: red" not in body
