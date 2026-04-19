@@ -1,10 +1,14 @@
 # audio-star
 
-Turn `.txt` or `.epub` books into audiobooks using [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M) on your own GPU. Produces one audio file per chapter.
+A thin CLI wrapper that turns `.txt` or `.epub` books into audiobooks using [Kokoro TTS](https://huggingface.co/hexgrad/Kokoro-82M) on your own GPU. Produces one audio file per chapter.
+
+**All the heavy lifting is done by [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), an open-weight TTS model by [hexgrad](https://huggingface.co/hexgrad). This repo is just the audiobook glue — chapter detection, text cleanup, batch rendering, output formats.** See [Credits](#credits) below.
 
 - Runs locally — nothing leaves your machine.
 - Kokoro-82M is small (~330 MB) and fast. On a GTX 1080 Ti you get ~20× realtime: a 10-hour book renders in ~30 minutes.
 - No voice cloning — uses Kokoro's built-in voices (English, Japanese, Chinese, Spanish, French, Hindi, Italian, Portuguese).
+
+**Hear it:** [`samples/demo_bella.mp3`](samples/demo_bella.mp3) — a 6-second clip using the `af_bella` voice.
 
 ## Requirements
 
@@ -22,7 +26,9 @@ cd audio-star
 python -m venv venv
 venv\Scripts\activate
 
-:: PyTorch with CUDA 12.1 — adjust cu121 to your CUDA if needed
+:: PyTorch with CUDA — pick the right wheel for YOUR GPU + driver.
+:: Visit https://pytorch.org/get-started/locally/ and copy the command,
+:: or use cu121 as a safe default for most modern NVIDIA cards.
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 pip install -r requirements.txt
@@ -112,3 +118,28 @@ More voices (JP/ZH/ES/FR/HI/IT/PT) listed on the [Kokoro model card](https://hug
 | `--no-unwrap` | off | `.txt` only — preserve line breaks (poetry/scripts) |
 | `--device` | `cuda` | `cuda` or `cpu`; auto-falls-back if CUDA unavailable |
 | `--list-voices` | — | List voices and exit |
+
+## Tests
+
+Tests cover the text-processing logic (chapter detection, filename sanitizing, hard-wrap unwrapping). Kokoro inference itself is not tested — the model isn't ours to validate.
+
+```cmd
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+## Credits
+
+This project is a thin wrapper around work done by others. The real credit goes to:
+
+- **[Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)** by [hexgrad](https://huggingface.co/hexgrad) — the TTS model. All the voice quality you hear comes from them. Released under Apache 2.0.
+- **[misaki](https://github.com/hexgrad/misaki)** — the G2P (grapheme-to-phoneme) library Kokoro uses, also by hexgrad.
+- **[espeak-ng](https://github.com/espeak-ng/espeak-ng)** — fallback phonemizer for out-of-dictionary words, bundled via the [`espeakng-loader`](https://pypi.org/project/espeakng-loader/) package.
+- **[PyTorch](https://pytorch.org/)** — runs the model on GPU.
+- **Project Gutenberg** — public-domain sample text (*Pride and Prejudice* by Jane Austen, *Frankenstein* by Mary Shelley).
+
+If this project is useful to you, consider starring the [Kokoro model repo on Hugging Face](https://huggingface.co/hexgrad/Kokoro-82M) — that's where the work that matters lives.
+
+## License
+
+[MIT](LICENSE).
