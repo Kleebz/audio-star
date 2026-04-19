@@ -16,7 +16,7 @@ Turn `.txt` or `.epub` books into audiobooks using [Kokoro TTS](https://huggingf
 ## Install (Windows)
 
 ```cmd
-git clone https://github.com/YOUR-USERNAME/audio-star.git
+git clone https://github.com/Kleebz/audio-star.git
 cd audio-star
 
 python -m venv venv
