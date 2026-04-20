@@ -123,6 +123,38 @@ def run_ffmpeg(args: list[str]) -> None:
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *args], check=True)
 
 
+def run_ffmpeg_with_progress(args: list[str], total_seconds: float) -> None:
+    """Run ffmpeg and stream a live progress line based on -progress output."""
+    cmd = ["ffmpeg", "-y", "-loglevel", "error",
+           "-progress", "pipe:1", "-nostats", *args]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, bufsize=1)
+    printed = False
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if not line.startswith("out_time_ms="):
+                continue
+            try:
+                secs = int(line.split("=", 1)[1]) / 1_000_000
+            except ValueError:
+                continue
+            pct = min(100.0, 100.0 * secs / total_seconds) if total_seconds else 0.0
+            print(f"\r    {pct:5.1f}%  ({secs/60:.1f} / {total_seconds/60:.1f} min)",
+                  end="", flush=True)
+            printed = True
+    finally:
+        rc = proc.wait()
+        if printed:
+            if rc == 0:
+                print(f"\r    100.0%  ({total_seconds/60:.1f} / {total_seconds/60:.1f} min)")
+            else:
+                print()
+        if rc != 0:
+            stderr = proc.stderr.read() if proc.stderr else ""
+            raise subprocess.CalledProcessError(rc, cmd, stderr=stderr)
+
+
 def encode_chapter(wav_path: Path, fmt: str, out_dir: Path) -> Path:
     """Encode a single chapter WAV into the requested format under out_dir."""
     out_path = out_dir / f"{wav_path.stem}.{fmt}"
@@ -158,16 +190,26 @@ def concat_chapters(wav_paths: list[Path], titles: list[str], durations: list[fl
             abs_path = p.resolve().as_posix().replace("'", r"'\''")
             f.write(f"file '{abs_path}'\n")
 
+    total_seconds = sum(durations)
     base_args = ["-f", "concat", "-safe", "0", "-i", str(concat_file)]
     if fmt == "m4b":
         meta_file = tmp_dir / "chapters.txt"
         meta_file.write_text(build_chapter_metadata(titles, durations), encoding="utf-8")
-        run_ffmpeg(base_args + ["-i", str(meta_file), "-map_metadata", "1",
-                                "-codec:a", "aac", "-b:a", "96k", str(out_path)])
+        run_ffmpeg_with_progress(
+            base_args + ["-i", str(meta_file), "-map_metadata", "1",
+                         "-codec:a", "aac", "-b:a", "96k", str(out_path)],
+            total_seconds,
+        )
     elif fmt == "mp3":
-        run_ffmpeg(base_args + ["-codec:a", "libmp3lame", "-b:a", "96k", str(out_path)])
+        run_ffmpeg_with_progress(
+            base_args + ["-codec:a", "libmp3lame", "-b:a", "96k", str(out_path)],
+            total_seconds,
+        )
     elif fmt == "wav":
-        run_ffmpeg(base_args + ["-codec:a", "pcm_s16le", str(out_path)])
+        run_ffmpeg_with_progress(
+            base_args + ["-codec:a", "pcm_s16le", str(out_path)],
+            total_seconds,
+        )
 
 
 def main() -> int:
